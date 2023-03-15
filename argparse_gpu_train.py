@@ -134,7 +134,7 @@ def main(model,device):
             total += labels.size(0)
             correct += (predicted == labels).sum().item()
              
-        print(f'Test Accuracy: {100 * correct / total:.2f}%')
+        print(f'Test Accuracy: {100 * correct / total:.10f}%')
     logging.info("Save model.state_dict() to {}".format(args.weights))
     torch.save(model.state_dict(), args.weights)
 if __name__ == "__main__":
