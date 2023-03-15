@@ -1,4 +1,5 @@
 import os
+import sys
 import numpy as np
 import torch
 import torch.nn as nn
@@ -148,6 +149,7 @@ if __name__ == "__main__":
     ]
 )
 
+    sys.argv = [__file__,"--device_type","cuda","--weights","fine_tune.weights","--num-epochs","1000","--learning-rate","0.00001"]
     parser = argparse.ArgumentParser()
     parser.add_argument("-d", "--device", help="Select device, during using multiple GPU",default=0,type=int)
     parser.add_argument("-ag","--allgpu",help="Using All GPU for this run",action="store_true")
@@ -159,6 +161,7 @@ if __name__ == "__main__":
     parser.add_argument('--batch-size', type=int, default=600, help='Batch size for training')
     parser.add_argument('--learning-rate', type=float, default=0.0001, help='Learning rate for the optimizer')
     parser.add_argument('--num-epochs', type=int, default=100, help='Number of epochs to train the model')
+
     args = parser.parse_args()
     args_dict = vars(args)
     logging.info(args_dict)
