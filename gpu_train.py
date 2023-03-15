@@ -66,58 +66,58 @@ class CNN(nn.Module):
         return out
 
 def main():
-model = CNN()
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-if os.path.exists('mnist_cnn.state_dict'):
-    loaded_model = CNN().to(device)
-    model_weights = torch.load('mnist_cnn.state_dict')
-
-    # 移除 "module." 前綴
-    new_model_weights = {k.replace("module.", ""): v for k, v in model_weights.items()}
-    loaded_model.load_state_dict(new_model_weights)
-    model = loaded_model
-
-# 檢查可用 GPU 數量
-if torch.cuda.device_count() > 1:
-    print(f'Using {torch.cuda.device_count()} GPUs')
-#    model = nn.DataParallel(model)
-
-model = model.to(device)
-
-# 損失函數和優化器
-criterion = nn.CrossEntropyLoss()
-optimizer = optim.Adam(model.parameters(), lr=learning_rate)
-
-# 訓練模型
-model.train()
-for epoch in range(num_epochs):
-    for i, (images, labels) in enumerate(train_loader):
-        images, labels = images.to(device), labels.to(device)
-        outputs = model(images)
-        loss = criterion(outputs, labels)
-
-        optimizer.zero_grad()
-        loss.backward()
-        optimizer.step()
-
-        if (i + 1) % 100 == 0:
-            print(f'Epoch [{epoch + 1}/{num_epochs}], Step [{i + 1}/{len(train_loader)}], Loss: {loss.item():.8f}')
-
-# 評估模型
-with torch.no_grad():
-    model.eval()
-    correct = 0
-    total = 0
-    for images, labels in test_loader:
-        images, labels = images.to(device), labels.to(device)
-        outputs = model(images)
-        _, predicted = torch.max(outputs.data, 1)
-        total += labels.size(0)
-        correct += (predicted == labels).sum().item()
-
-    print(f'Test Accuracy: {100 * correct / total:.2f}%')
-torch.save(model.state_dict(), 'mnist_cnn.state_dict')
+    model = CNN()
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    
+    if os.path.exists('mnist_cnn.state_dict'):
+        loaded_model = CNN().to(device)
+        model_weights = torch.load('mnist_cnn.state_dict')
+    
+        # 移除 "module." 前綴
+        new_model_weights = {k.replace("module.", ""): v for k, v in model_weights.items()}
+        loaded_model.load_state_dict(new_model_weights)
+        model = loaded_model
+    
+    # 檢查可用 GPU 數量
+    if torch.cuda.device_count() > 1:
+        print(f'Using {torch.cuda.device_count()} GPUs')
+    #    model = nn.DataParallel(model)
+    
+    model = model.to(device)
+    
+    # 損失函數和優化器
+    criterion = nn.CrossEntropyLoss()
+    optimizer = optim.Adam(model.parameters(), lr=learning_rate)
+    
+    # 訓練模型
+    model.train()
+    for epoch in range(num_epochs):
+        for i, (images, labels) in enumerate(train_loader):
+            images, labels = images.to(device), labels.to(device)
+            outputs = model(images)
+            loss = criterion(outputs, labels)
+    
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
+    
+            if (i + 1) % 100 == 0:
+                print(f'Epoch [{epoch + 1}/{num_epochs}], Step [{i + 1}/{len(train_loader)}], Loss: {loss.item():.8f}')
+    
+    # 評估模型
+    with torch.no_grad():
+        model.eval()
+        correct = 0
+        total = 0
+        for images, labels in test_loader:
+            images, labels = images.to(device), labels.to(device)
+            outputs = model(images)
+            _, predicted = torch.max(outputs.data, 1)
+            total += labels.size(0)
+            correct += (predicted == labels).sum().item()
+    
+        print(f'Test Accuracy: {100 * correct / total:.2f}%')
+    torch.save(model.state_dict(), 'mnist_cnn.state_dict')
 
 if __name__ == "__main__":
     main()
