@@ -149,7 +149,7 @@ if __name__ == "__main__":
     ]
 )
 
-    sys.argv = [__file__,"--device_type","cuda","--weights","fine_tune.weights","--num-epochs","1000","--learning-rate","0.00001"]
+    #sys.argv = [__file__,"--device_type","cuda","--weights","fine_tune.weights","--num-epochs","1000","--learning-rate","0.00001"]
     parser = argparse.ArgumentParser()
     parser.add_argument("-d", "--device", help="Select device, during using multiple GPU",default=0,type=int)
     parser.add_argument("-ag","--allgpu",help="Using All GPU for this run",action="store_true")
