@@ -1,5 +1,4 @@
 import os
-import sys
 import numpy as np
 import torch
 import torch.nn as nn
@@ -22,7 +21,8 @@ class MyMNISTDataset(Dataset):
         return len(self.labels)
 
     def __getitem__(self, idx):
-        image = self.images[idx]
+        image = self.images[idx].astype(np.float32)
+        #image = self.images[idx]
         label = self.labels[idx]
 
         if self.transform:
@@ -38,9 +38,6 @@ class MyMNISTDataset(Dataset):
 #use_cuda = torch.cuda.is_available()
 #device = torch.device('cuda' if use_cuda else 'cpu')
 #print('Using device:', device)
-
-
-# 定義模型
 class CNN(nn.Module):
     def __init__(self):
         super(CNN, self).__init__()
@@ -60,8 +57,13 @@ class CNN(nn.Module):
         out = out.reshape(out.size(0), -1)
         out = self.fc(out)
         return out
+
+
+# 定義模型
 def test(model,device):
     model = model.to(device)
+    dataset_size = len(test_loader.dataset)
+    logging.info(f"Testing dataset size: {dataset_size}")
     with torch.no_grad():
         model.eval()
         correct = 0
@@ -84,29 +86,31 @@ def train(model,device):
 
     # 訓練模型
     model.train()
+    trining_loader_step_size=len(train_loader)/3
+    logging.info(f"Training loader step size:{trining_dataset_len}")
     for epoch in range(num_epochs):
         for i, (images, labels) in enumerate(train_loader):
             images, labels = images.to(device), labels.to(device)
             outputs = model(images)
+            labels = labels.long()
             loss = criterion(outputs, labels)
 
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
 
-            if (i + 1) % 100 == 0:
-                logging.info(f'Epoch [{epoch + 1}/{num_epochs}], Step [{i + 1}/{len(train_loader)}], Loss: {loss.item():.10f}')
+            if (i + 1) % args.batch_size == 0:
+                logging.info(f'Epoch [{epoch + 1}/{num_epochs}], Step [{i + 1}/{len(train_loader)}], Processed Images: Step: {i+1} * batch_size: {batch_size} = {(i+1) * batch_size }, Loss: {loss.item():.8f}')
     logging.info("Save model.state_dict() to {}".format(args.weights))
     torch.save(model.state_dict(), args.weights)
-    
+
 
 def main(model,device):
     model = model.to(device)
-    
     # 損失函數和優化器
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=learning_rate)
-    
+
     # 訓練模型
     model.train()
     for epoch in range(num_epochs):
@@ -114,14 +118,14 @@ def main(model,device):
             images, labels = images.to(device), labels.to(device)
             outputs = model(images)
             loss = criterion(outputs, labels)
-    
+
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
-    
-            if (i + 1) % 100 == 0:
+
+            if (i + 1) % args.batch_size == 0:
                 logging.info(f'Epoch [{epoch + 1}/{num_epochs}], Step [{i + 1}/{len(train_loader)}], Loss: {loss.item():.8f}')
-    
+
     # 評估模型
     with torch.no_grad():
         model.eval()
@@ -133,8 +137,8 @@ def main(model,device):
             _, predicted = torch.max(outputs.data, 1)
             total += labels.size(0)
             correct += (predicted == labels).sum().item()
-             
-        print(f'Test Accuracy: {100 * correct / total:.10f}%')
+
+        print(f'Test Accuracy: {100 * correct / total:.2f}%')
     logging.info("Save model.state_dict() to {}".format(args.weights))
     torch.save(model.state_dict(), args.weights)
 if __name__ == "__main__":
@@ -149,7 +153,6 @@ if __name__ == "__main__":
     ]
 )
 
-    #sys.argv = [__file__,"--device_type","cuda","--weights","fine_tune.weights","--num-epochs","1000","--learning-rate","0.00001"]
     parser = argparse.ArgumentParser()
     parser.add_argument("-d", "--device", help="Select device, during using multiple GPU",default=0,type=int)
     parser.add_argument("-ag","--allgpu",help="Using All GPU for this run",action="store_true")
@@ -161,7 +164,6 @@ if __name__ == "__main__":
     parser.add_argument('--batch-size', type=int, default=600, help='Batch size for training')
     parser.add_argument('--learning-rate', type=float, default=0.0001, help='Learning rate for the optimizer')
     parser.add_argument('--num-epochs', type=int, default=100, help='Number of epochs to train the model')
-
     args = parser.parse_args()
     args_dict = vars(args)
     logging.info(args_dict)
@@ -170,23 +172,25 @@ if __name__ == "__main__":
     learning_rate = args.learning_rate
     num_epochs = args.num_epochs
 
-    if args.training_data is not None:
+    if args.training_data is not None and args.mode == 'train':
         logging.info("Loading custom train dataset:{}".format(args.training_data))
         train_dataset = MyMNISTDataset(args.training_data, transform=torchvision.transforms.ToTensor())
-    if args.testing_data is not None:
+    if args.testing_data is not None and (args.mode == 'test' or args.mode == 'all'):
         logging.info("Loading custom test dataset:{}".format(args.testing_data))
         test_dataset = MyMNISTDataset(args.testing_data, transform=torchvision.transforms.ToTensor())
-    
-    if args.training_data is None:
+
+    if args.training_data is None and args.mode == 'train':
         logging.info("Loading default train dataset")
         train_dataset = dsets.MNIST(root='./data', train=True, transform=transforms.ToTensor(), download=True)
-    if args.testing_data is None:
+    if args.testing_data is None and (args.mode == 'test' or args.mode == 'all'):
         logging.info("Loading default test dataset")
         test_dataset = dsets.MNIST(root='./data', train=False, transform=transforms.ToTensor(), download=True)
 
-    train_loader = DataLoader(dataset=train_dataset, batch_size=batch_size, shuffle=True)
+    if 'train_dataset' in globals():
+        train_loader = DataLoader(dataset=train_dataset, batch_size=batch_size, shuffle=True)
     #test_loader = DataLoader(dataset=test_dataset, batch_size=batch_size, shuffle=False)
-    test_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+    if 'test_dataset' in globals():
+        test_loader = DataLoader(dataset=test_dataset, batch_size=batch_size, shuffle=True)
 
     if args.device_type == "cuda" and torch.cuda.is_available():
         device="cuda"
